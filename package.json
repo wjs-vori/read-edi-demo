@@ -48,5 +48,8 @@
       },
       "compile": "tsc"
     }
+  },
+  "dependencies": {
+    "@stedi/sdk-token-provider": "^0.0.44"
   }
 }
