@@ -27,6 +27,7 @@
     "@stedi/sdk-client-mappings": "^0.0.40",
     "@stedi/sdk-client-sftp": "^0.0.40",
     "@stedi/sdk-client-stash": "^0.0.40",
+    "@stedi/sdk-token-provider": "^0.0.44",
     "@types/node": "^18.11.15",
     "@types/node-fetch": "^2.6.2",
     "@types/object-hash": "^3.0.1",
@@ -55,8 +56,5 @@
       },
       "compile": "tsc"
     }
-  },
-  "dependencies": {
-    "@stedi/sdk-token-provider": "^0.0.44"
   }
 }
