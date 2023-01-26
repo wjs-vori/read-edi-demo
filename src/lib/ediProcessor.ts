@@ -7,7 +7,11 @@ import { trackProgress } from "./progressTracking.js";
 
 const mappingsClient = new MappingsClient(DEFAULT_SDK_CLIENT_PROPS);
 
-export const processEdiDocument = async (guideId: string, mappingId: string, ediDocument: string): Promise<DocumentType> => {
+export const processEdiDocument = async (
+  guideId: string,
+  mappingId: string,
+  ediDocument: string
+): Promise<DocumentType> => {
   const translation = await translateEdiToJson(ediDocument, guideId);
   await trackProgress("translated edi document", translation);
 
@@ -15,7 +19,10 @@ export const processEdiDocument = async (guideId: string, mappingId: string, edi
     throw new Error(`no envelope found in input`);
   }
 
-  if (!translation.transactionSets || translation.transactionSets.length === 0) {
+  if (
+    !translation.transactionSets ||
+    translation.transactionSets.length === 0
+  ) {
     throw new Error(`no transaction sets found in input`);
   }
 
@@ -25,12 +32,16 @@ export const processEdiDocument = async (guideId: string, mappingId: string, edi
       content: {
         envelope: translation.envelope,
         transactionSets: translation.transactionSets,
-      }
+      },
     })
   );
 
   if (!mapResult.content) {
-    throw new Error(`Failed to map transaction set. No content returned: ${JSON.stringify(translation.envelope)}`);
+    throw new Error(
+      `Failed to map transaction set. No content returned: ${JSON.stringify(
+        translation.envelope
+      )}`
+    );
   }
 
   return mapResult.content;

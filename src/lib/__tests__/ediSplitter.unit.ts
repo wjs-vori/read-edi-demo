@@ -42,11 +42,15 @@ test("should throw error if isa is encountered within scope of another isa", (t)
     },
     { instanceOf: Error }
   );
-  t.is(error?.message, "interchange start encountered without previous interchange termination");
+  t.is(
+    error?.message,
+    "interchange start encountered without previous interchange termination"
+  );
 });
 
 test("should throw error if there are not enough elements in the document", (t) => {
-  const edi = "ISA*00*          *00*          *12*7147085121     *01*040132628      *220921*1002*U*00501*000028538*0*P*>~";
+  const edi =
+    "ISA*00*          *00*          *12*7147085121     *01*040132628      *220921*1002*U*00501*000028538*0*P*>~";
   const error = t.throws(
     () => {
       splitEdi(edi);
@@ -101,7 +105,10 @@ test("should throw error if st encountered outside the scope of a functional gro
     },
     { instanceOf: Error }
   );
-  t.is(error?.message, "transaction set encountered outside the scope of a functional group");
+  t.is(
+    error?.message,
+    "transaction set encountered outside the scope of a functional group"
+  );
 });
 
 test("should throw error if non-envelope segment encountered outside the scope of a functional group", (t) => {
@@ -112,7 +119,10 @@ test("should throw error if non-envelope segment encountered outside the scope o
     },
     { instanceOf: Error }
   );
-  t.is(error?.message, "segment encountered outside the scope of a functional group");
+  t.is(
+    error?.message,
+    "segment encountered outside the scope of a functional group"
+  );
 });
 
 test("should throw error if ge encountered outside the scope of a functional group", (t) => {
@@ -123,7 +133,10 @@ test("should throw error if ge encountered outside the scope of a functional gro
     },
     { instanceOf: Error }
   );
-  t.is(error?.message, "functional group terminator encountered outside the scope of a functional group");
+  t.is(
+    error?.message,
+    "functional group terminator encountered outside the scope of a functional group"
+  );
 });
 
 test("should throw error if functional group transaction set code not found", (t) => {
@@ -146,7 +159,10 @@ test("should throw error if iea encountered outside the scope of an interchange"
     },
     { instanceOf: Error }
   );
-  t.is(error?.message, "interchange terminator encountered outside the scope of an interchange");
+  t.is(
+    error?.message,
+    "interchange terminator encountered outside the scope of an interchange"
+  );
 });
 
 test("should throw error if interchange does not include a functional group", (t) => {
@@ -169,7 +185,10 @@ test("should throw error when functional group has multiple transactions of diff
     },
     { instanceOf: Error }
   );
-  t.is(error?.message, "all transaction sets within a functional group must be the same type");
+  t.is(
+    error?.message,
+    "all transaction sets within a functional group must be the same type"
+  );
 });
 
 test("should generate a single split when edi file has a single transaction code", (t) => {

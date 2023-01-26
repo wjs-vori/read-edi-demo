@@ -1,9 +1,12 @@
 import fetch from "node-fetch";
-import consumers from 'stream/consumers';
+import consumers from "stream/consumers";
 import { Readable } from "stream";
 import { serializeError } from "serialize-error";
 
-import { DeleteObjectCommand, GetObjectCommand } from "@stedi/sdk-client-buckets";
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+} from "@stedi/sdk-client-buckets";
 
 import { processEdiDocument } from "../../../lib/ediProcessor.js";
 import {
@@ -11,12 +14,23 @@ import {
   functionName,
   generateExecutionId,
   markExecutionAsSuccessful,
-  recordNewExecution
+  recordNewExecution,
 } from "../../../lib/execution.js";
-import { Convert, Record as BucketNotificationRecord } from "../../../lib/types/BucketNotificationEvent.js";
+import {
+  Convert,
+  Record as BucketNotificationRecord,
+} from "../../../lib/types/BucketNotificationEvent.js";
 import { bucketClient } from "../../../lib/buckets.js";
-import { FilteredKey, GroupedEventKeys, KeyToProcess, ProcessingResults } from "./types.js";
-import { getResourceIdsForTransactionSets, requiredEnvVar } from "../../../lib/environment.js";
+import {
+  FilteredKey,
+  GroupedEventKeys,
+  KeyToProcess,
+  ProcessingResults,
+} from "./types.js";
+import {
+  getResourceIdsForTransactionSets,
+  requiredEnvVar,
+} from "../../../lib/environment.js";
 import { trackProgress } from "../../../lib/progressTracking.js";
 import { EdiDocument, splitEdi } from "../../../lib/ediSplitter.js";
 
@@ -25,11 +39,16 @@ const bucketsClient = bucketClient();
 
 export const handler = async (event: any): Promise<Record<string, any>> => {
   const executionId = generateExecutionId(event);
-  await trackProgress(`starting ${functionName()}`, { input: event, executionId });
+  await trackProgress(`starting ${functionName()}`, {
+    input: event,
+    executionId,
+  });
 
   try {
     await recordNewExecution(executionId, event);
-    const bucketNotificationEvent = Convert.toBucketNotificationEvent(JSON.stringify(event));
+    const bucketNotificationEvent = Convert.toBucketNotificationEvent(
+      JSON.stringify(event)
+    );
 
     // Fail fast if required env vars are missing
     const destinationWebhookUrl = requiredEnvVar("DESTINATION_WEBHOOK_URL");
@@ -45,12 +64,16 @@ export const handler = async (event: any): Promise<Record<string, any>> => {
       filteredKeys: groupedEventKeys.filteredKeys,
       processingErrors: [],
       processedKeys: [],
-    }
+    };
 
     // Iterate through each key that represents an object within an `inbound` directory
     for await (const keyToProcess of groupedEventKeys.keysToProcess) {
-      const getObjectResponse = await bucketsClient.send(new GetObjectCommand(keyToProcess));
-      const fileContents = await consumers.text(getObjectResponse.body as Readable);
+      const getObjectResponse = await bucketsClient.send(
+        new GetObjectCommand(keyToProcess)
+      );
+      const fileContents = await consumers.text(
+        getObjectResponse.body as Readable
+      );
 
       try {
         // Split EDI input into multiple documents if there are multiple functional groups
@@ -59,8 +82,11 @@ export const handler = async (event: any): Promise<Record<string, any>> => {
         await trackProgress("split edi documents", ediDocuments);
 
         // Grab all guide and mapping ids for the transaction sets found in the input (fail early if any are missing)
-        const transactionSets = ediDocuments.map(getTransactionSetIdentifierForEdiDocument);
-        const resourceIdsByTransactionSetMap = getResourceIdsForTransactionSets(transactionSets);
+        const transactionSets = ediDocuments.map(
+          getTransactionSetIdentifierForEdiDocument
+        );
+        const resourceIdsByTransactionSetMap =
+          getResourceIdsForTransactionSets(transactionSets);
 
         // For each EDI document:
         // - look up the guideId and mappingId
@@ -68,33 +94,48 @@ export const handler = async (event: any): Promise<Record<string, any>> => {
         // - send the result to the webhook
         // - delete the input file once processed successfully
         for await (const ediDocument of ediDocuments) {
-          const transactionSetIdentifier = getTransactionSetIdentifierForEdiDocument(ediDocument);
+          const transactionSetIdentifier =
+            getTransactionSetIdentifierForEdiDocument(ediDocument);
 
           // selection of guideId and mappingId could also take the senderId/receiverId from the edi document metadata if needed
-          const guideId = requiredString("guideId", resourceIdsByTransactionSetMap.get(transactionSetIdentifier)?.guideId);
-          const mappingId = requiredString("mappingId", resourceIdsByTransactionSetMap.get(transactionSetIdentifier)?.mappingId);
-
-          const ediProcessingResult = await processEdiDocument(guideId, mappingId, ediDocument.edi);
-
-          await fetch(
-            destinationWebhookUrl,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(ediProcessingResult),
-            }
+          const guideId = requiredString(
+            "guideId",
+            resourceIdsByTransactionSetMap.get(transactionSetIdentifier)
+              ?.guideId
+          );
+          const mappingId = requiredString(
+            "mappingId",
+            resourceIdsByTransactionSetMap.get(transactionSetIdentifier)
+              ?.mappingId
           );
 
+          const ediProcessingResult = await processEdiDocument(
+            guideId,
+            mappingId,
+            ediDocument.edi
+          );
+
+          await fetch(destinationWebhookUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(ediProcessingResult),
+          });
         }
 
         // Delete the processed file (could also archive in a `processed` directory or in another bucket if desired)
         await bucketsClient.send(new DeleteObjectCommand(keyToProcess));
         results.processedKeys.push(keyToProcess.key);
       } catch (e) {
-        const error = e instanceof Error ? e : new Error(`unknown error: ${serializeError(e)}`);
-        await trackProgress("error processing document", { key: keyToProcess.key, error: serializeError(error) });
+        const error =
+          e instanceof Error
+            ? e
+            : new Error(`unknown error: ${serializeError(e)}`);
+        await trackProgress("error processing document", {
+          key: keyToProcess.key,
+          error: serializeError(error),
+        });
         results.processingErrors.push({
           key: keyToProcess.key,
           error,
@@ -107,7 +148,9 @@ export const handler = async (event: any): Promise<Record<string, any>> => {
     if (errorCount > 0) {
       const keyCount = groupedEventKeys.keysToProcess.length;
       const keyCountMessage = `${keyCount} key${keyCount > 1 ? "s" : ""}`;
-      const errorCountMessage = `${errorCount} error${errorCount > 1 ? "s" : ""}`;
+      const errorCountMessage = `${errorCount} error${
+        errorCount > 1 ? "s" : ""
+      }`;
       const message = `encountered ${errorCountMessage} while attempting to process ${keyCountMessage}`;
       return failedExecution(executionId, new Error(message));
     }
@@ -117,7 +160,8 @@ export const handler = async (event: any): Promise<Record<string, any>> => {
 
     return results;
   } catch (e) {
-    const error = e instanceof Error ? e : new Error(`unknown error: ${JSON.stringify(e)}`);
+    const error =
+      e instanceof Error ? e : new Error(`unknown error: ${JSON.stringify(e)}`);
     await trackProgress("handler error", { error: serializeError(error) });
 
     // Note, if an infinite Function execution loop is detected by `executionsBucketClient()`
@@ -126,37 +170,42 @@ export const handler = async (event: any): Promise<Record<string, any>> => {
   }
 };
 
-const groupEventKeys = (records: BucketNotificationRecord[]): GroupedEventKeys => {
+const groupEventKeys = (
+  records: BucketNotificationRecord[]
+): GroupedEventKeys => {
   const filteredKeys: FilteredKey[] = [];
-  const keysToProcess = records.reduce((collectedKeys: KeyToProcess[], record) => {
-    const eventKey = record.s3.object.key;
+  const keysToProcess = records.reduce(
+    (collectedKeys: KeyToProcess[], record) => {
+      const eventKey = record.s3.object.key;
 
-    if (eventKey.endsWith("/")) {
-      filteredKeys.push({
-        key: eventKey,
-        reason: "key represents a folder",
-      });
-      return collectedKeys;
-    }
-    const splitKey = eventKey.split("/");
-    if (splitKey.length < 2 || splitKey[splitKey.length - 2] !== "inbound") {
-      filteredKeys.push({
-        key: eventKey,
-        reason: "key does not match an item in an `inbound` directory",
-      });
-      return collectedKeys;
-    }
+      if (eventKey.endsWith("/")) {
+        filteredKeys.push({
+          key: eventKey,
+          reason: "key represents a folder",
+        });
+        return collectedKeys;
+      }
+      const splitKey = eventKey.split("/");
+      if (splitKey.length < 2 || splitKey[splitKey.length - 2] !== "inbound") {
+        filteredKeys.push({
+          key: eventKey,
+          reason: "key does not match an item in an `inbound` directory",
+        });
+        return collectedKeys;
+      }
 
-    return collectedKeys.concat({
-      bucketName: record.s3.bucket.name,
-      key: decodeObjectKey(eventKey),
-    });
-  }, []);
+      return collectedKeys.concat({
+        bucketName: record.s3.bucket.name,
+        key: decodeObjectKey(eventKey),
+      });
+    },
+    []
+  );
 
   return {
     filteredKeys,
     keysToProcess,
-  }
+  };
 };
 
 // Object key components are URI-encoded (with `+` used for encoding spaces)
@@ -164,8 +213,9 @@ const decodeObjectKey = (objectKey: string): string =>
   decodeURIComponent(objectKey.replace(/\+/g, " "));
 
 // Use EdiDocument metadata to construct the transaction set identifier using the convention used in this demo
-const getTransactionSetIdentifierForEdiDocument = (ediDocument: EdiDocument): string =>
-  `X12-${ediDocument.metadata.release}-${ediDocument.metadata.code}`;
+const getTransactionSetIdentifierForEdiDocument = (
+  ediDocument: EdiDocument
+): string => `X12-${ediDocument.metadata.release}-${ediDocument.metadata.code}`;
 
 const requiredString = (key: string, value?: string): string => {
   if (!value) {

@@ -18,7 +18,10 @@ import { ensureGuideExists } from "../support/guide.js";
 dotenv.config({ override: true });
 
 (async () => {
-  const guidePaths = getResourcePathsForTransactionSets(getEnabledTransactionSets(), "guide.json");
+  const guidePaths = getResourcePathsForTransactionSets(
+    getEnabledTransactionSets(),
+    "guide.json"
+  );
 
   const promises = guidePaths.map(async (guidePath) => {
     const namespace = resourceNamespaceFromPath(guidePath);
@@ -37,7 +40,10 @@ dotenv.config({ override: true });
 
   const guidesDetails = await Promise.all(promises);
   const guideIdEnvVars = generateResourceIdEnvVars("guide", guidesDetails);
-  const existingEnvVars = removeExistingResourceIdEnvVars("guide", dotenv.config().parsed);
+  const existingEnvVars = removeExistingResourceIdEnvVars(
+    "guide",
+    dotenv.config().parsed
+  );
   updateDotEnvFile({
     ...existingEnvVars,
     ...guideIdEnvVars,

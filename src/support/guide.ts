@@ -8,7 +8,7 @@ import {
   GuidesClientConfig,
   ListGuidesCommand,
   PublishGuideCommand,
-  ResourceConflictException
+  ResourceConflictException,
 } from "@stedi/sdk-client-guides";
 
 import { DEFAULT_SDK_CLIENT_PROPS } from "../lib/constants.js";
@@ -36,7 +36,10 @@ export const parseGuideId = (fullGuideId: string): string => {
   return fullGuideId.split("_")[1];
 };
 
-export const ensureGuideExists = async (namespace: string, guide: CreateGuideInput): Promise<string> => {
+export const ensureGuideExists = async (
+  namespace: string,
+  guide: CreateGuideInput
+): Promise<string> => {
   if (!guide.name) {
     throw new Error(`[${namespace}] Guide input must include "name" property`);
   }
@@ -49,7 +52,11 @@ export const ensureGuideExists = async (namespace: string, guide: CreateGuideInp
   } catch (e) {
     if (!(e instanceof ResourceConflictException)) {
       // re-throw all errors except resource conflict
-      throw new Error(`[${namespace}] Error creating guide: ${JSON.stringify(serializeError(e))}`);
+      throw new Error(
+        `[${namespace}] Error creating guide: ${JSON.stringify(
+          serializeError(e)
+        )}`
+      );
     }
 
     console.log(`[${namespace}] Guide creation skipped (guide already exists)`);
@@ -58,11 +65,18 @@ export const ensureGuideExists = async (namespace: string, guide: CreateGuideInp
   }
 };
 
-const createGuide = async (namespace: string, guide: CreateGuideInput): Promise<string> => {
-  const createGuideResponse = await guidesClient().send(new CreateGuideCommand(guide));
+const createGuide = async (
+  namespace: string,
+  guide: CreateGuideInput
+): Promise<string> => {
+  const createGuideResponse = await guidesClient().send(
+    new CreateGuideCommand(guide)
+  );
 
   if (!createGuideResponse.id)
-    throw new Error(`[${namespace}] Error creating guide (id not found in response)`);
+    throw new Error(
+      `[${namespace}] Error creating guide (id not found in response)`
+    );
 
   if (!createGuideResponse.publishedAt) {
     await publishGuide(createGuideResponse.id);
@@ -72,21 +86,36 @@ const createGuide = async (namespace: string, guide: CreateGuideInput): Promise<
 };
 
 const publishGuide = async (guideId: string): Promise<any> => {
-  return await guidesClient().send(new PublishGuideCommand({
-    id: guideId,
-  }));
+  return await guidesClient().send(
+    new PublishGuideCommand({
+      id: guideId,
+    })
+  );
 };
 
-const findGuideIdByName = async (namespace: string, guideName: string, pageToken?: string): Promise<string> => {
-  const guidesList = await guidesClient().send(new ListGuidesCommand({
-    nextPageToken: pageToken,
-  }));
+const findGuideIdByName = async (
+  namespace: string,
+  guideName: string,
+  pageToken?: string
+): Promise<string> => {
+  const guidesList = await guidesClient().send(
+    new ListGuidesCommand({
+      nextPageToken: pageToken,
+    })
+  );
 
-  const foundGuide = guidesList.items?.find((guide=> guide.name === guideName));
+  const foundGuide = guidesList.items?.find(
+    (guide) => guide.name === guideName
+  );
 
   if (!foundGuide?.id && !guidesList.nextPageToken) {
-    throw new Error(`[${namespace}] Failed to look up existing guide by name: ${guideName}`);
+    throw new Error(
+      `[${namespace}] Failed to look up existing guide by name: ${guideName}`
+    );
   }
 
-  return foundGuide?.id || await findGuideIdByName(namespace, guideName, guidesList.nextPageToken);
+  return (
+    foundGuide?.id ||
+    (await findGuideIdByName(namespace, guideName, guidesList.nextPageToken))
+  );
 };

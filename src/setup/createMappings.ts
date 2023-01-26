@@ -18,7 +18,10 @@ import { ensureMappingExists } from "../support/mapping.js";
 dotenv.config({ override: true });
 
 (async () => {
-  const mappingPaths = getResourcePathsForTransactionSets(getEnabledTransactionSets(), "map.json");
+  const mappingPaths = getResourcePathsForTransactionSets(
+    getEnabledTransactionSets(),
+    "map.json"
+  );
 
   const promises = mappingPaths.map(async (mappingPath) => {
     const namespace = resourceNamespaceFromPath(mappingPath);
@@ -36,8 +39,14 @@ dotenv.config({ override: true });
   }, []);
 
   const mappingsDetails = await Promise.all(promises);
-  const mappingIdEnvVars = generateResourceIdEnvVars("mapping", mappingsDetails);
-  const existingEnvVars = removeExistingResourceIdEnvVars("mapping", dotenv.config().parsed);
+  const mappingIdEnvVars = generateResourceIdEnvVars(
+    "mapping",
+    mappingsDetails
+  );
+  const existingEnvVars = removeExistingResourceIdEnvVars(
+    "mapping",
+    dotenv.config().parsed
+  );
   updateDotEnvFile({
     ...existingEnvVars,
     ...mappingIdEnvVars,
